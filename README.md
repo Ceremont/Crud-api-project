@@ -1,8 +1,6 @@
 # Todo App Backend
 
-A simple backend API for a Todo application built with `FastAPI` and `PostgreSQL`.
-
-This project was created as a practice backend application and includes a Docker-based PostgreSQL setup, database persistence, and basic CRUD operations for tasks.
+Backend API for a Todo application built with FastAPI, SQLAlchemy, and PostgreSQL.
 
 ## Features
 
@@ -10,56 +8,93 @@ This project was created as a practice backend application and includes a Docker
 - Get all tasks
 - Update existing tasks
 - Delete tasks
-- Store data in PostgreSQL instead of in-memory storage
+- Store data in PostgreSQL
 
 ## Tech Stack
 
-- `Python 3.13`
-- `FastAPI`
-- `SQLAlchemy`
-- `PostgreSQL`
-- `Docker`
-- `Uvicorn`
+- Python 3.13
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- Uvicorn
+- Docker
 
 ## Project Structure
 
 ```text
 .
-├── main.py
-├── requerements.txt
-└── README.md
+|-- app
+|   |-- api
+|   |   |-- dependencies.py
+|   |   `-- routers
+|   |       `-- task.py
+|   |-- core
+|   |   `-- config.py
+|   |-- db
+|   |   `-- session.py
+|   |-- models
+|   |   |-- base.py
+|   |   `-- task.py
+|   |-- repositories
+|   |   `-- task.py
+|   |-- schemas
+|   |   `-- task.py
+|   |-- services
+|   |   `-- task.py
+|   `-- main.py
+|-- requirements.txt
+`-- README.md
 ```
 
 ## Getting Started
 
-### 1. Run PostgreSQL with Docker
+### 1. Create and activate a virtual environment
 
-```bash
-docker run --name my-container -e POSTGRES_PASSWORD=admin -p 15432:5432 -d postgres
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
-
-This command starts a PostgreSQL container with:
-
-- database user: `postgres`
-- password: `admin`
-- local port: `15432`
 
 ### 2. Install dependencies
 
-```bash
-pip install -r requerements.txt
+```powershell
+pip install -r requirements.txt
 ```
 
-If needed, install the database packages manually:
+### 3. Run PostgreSQL with Docker
 
 ```bash
-pip install sqlalchemy psycopg[binary]
+docker run --name todo-postgres -e POSTGRES_PASSWORD=admin -p 15432:5432 -d postgres
 ```
 
-### 3. Start the application
+This starts PostgreSQL with:
 
-```bash
-uvicorn main:app --reload
+- user: `postgres`
+- password: `admin`
+- host: `127.0.0.1`
+- port: `15432`
+- database: `postgres`
+
+### 4. Configure environment variables
+
+By default, the app uses:
+
+```text
+DATABASE_URL=postgresql+psycopg://postgres:admin@127.0.0.1:15432/postgres
+ALLOWED_ORIGINS=http://localhost:3000
+```
+
+You can override them in PowerShell before starting the app:
+
+```powershell
+$env:DATABASE_URL="postgresql+psycopg://postgres:admin@127.0.0.1:15432/postgres"
+$env:ALLOWED_ORIGINS="http://localhost:3000,http://127.0.0.1:3000"
+```
+
+### 5. Start the application
+
+```powershell
+uvicorn app.main:app --reload
 ```
 
 The API will be available at:
@@ -68,28 +103,38 @@ The API will be available at:
 http://127.0.0.1:8000
 ```
 
-Interactive API docs:
+Interactive docs:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-## Database Configuration
-
-The current connection string used in the project:
-
-```python
-postgresql+psycopg://postgres:admin@127.0.0.1:15432/postgres
-```
-
 ## API Endpoints
 
-- `GET /tasks` — return all tasks
-- `POST /tasks` — create a new task
-- `PATCH /tasks/{task_id}` — update a task
-- `DELETE /tasks/{task_id}` — delete a task
+- `GET /tasks` returns all tasks
+- `POST /tasks` creates a new task
+- `PATCH /tasks/{task_id}` updates a task
+- `DELETE /tasks/{task_id}` deletes a task
 
-### Example: Create a task
+## Route Examples
+
+Base URL:
+
+```text
+http://127.0.0.1:8000
+```
+
+### 1. Create a task
+
+Request:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/tasks" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"title\":\"Buy milk\"}"
+```
+
+Request body:
 
 ```json
 {
@@ -97,7 +142,49 @@ postgresql+psycopg://postgres:admin@127.0.0.1:15432/postgres
 }
 ```
 
-### Example: Update a task
+Example response:
+
+```json
+{
+  "id": "0d8c6e18-7a10-4dc5-b3e3-590188f4d774",
+  "title": "Buy milk",
+  "completed": false
+}
+```
+
+### 2. Get all tasks
+
+Request:
+
+```bash
+curl "http://127.0.0.1:8000/tasks"
+```
+
+Example response:
+
+```json
+[
+  {
+    "id": "0d8c6e18-7a10-4dc5-b3e3-590188f4d774",
+    "title": "Buy milk",
+    "completed": false
+  }
+]
+```
+
+### 3. Update a task
+
+Replace `{task_id}` with the real task id from the create response.
+
+Request:
+
+```bash
+curl -X PATCH "http://127.0.0.1:8000/tasks/0d8c6e18-7a10-4dc5-b3e3-590188f4d774" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"title\":\"Buy milk and bread\",\"completed\":true}"
+```
+
+Request body:
 
 ```json
 {
@@ -106,21 +193,40 @@ postgresql+psycopg://postgres:admin@127.0.0.1:15432/postgres
 }
 ```
 
-## Development Notes
+Example response:
 
-This project is still in progress and can be improved further by:
+```json
+{
+  "id": "0d8c6e18-7a10-4dc5-b3e3-590188f4d774",
+  "title": "Buy milk and bread",
+  "completed": true
+}
+```
 
-- moving database settings into environment variables
-- adding migrations with `Alembic`
-- renaming `requerements.txt` to `requirements.txt`
-- splitting the application into separate modules
-- adding tests and better validation
+### 4. Delete a task
 
-## Purpose
+Request:
 
-This repository is part of my backend learning practice and demonstrates:
+```bash
+curl -X DELETE "http://127.0.0.1:8000/tasks/0d8c6e18-7a10-4dc5-b3e3-590188f4d774"
+```
 
-- working with REST APIs in FastAPI
-- connecting a Python app to PostgreSQL
-- running services with Docker
-- implementing basic database CRUD operations
+Expected result:
+
+- HTTP status: `204 No Content`
+- Response body: empty
+
+### Full workflow
+
+1. Send `POST /tasks` to create a new task.
+2. Copy the returned `id`.
+3. Send `GET /tasks` to confirm the task is stored.
+4. Send `PATCH /tasks/{task_id}` to update title or completed status.
+5. Send `DELETE /tasks/{task_id}` to remove the task.
+6. Send `GET /tasks` again to confirm it is gone.
+
+## Notes
+
+- Tables are currently created on application startup via `Base.metadata.create_all(...)`.
+- The project uses a layered structure: router -> service -> repository -> database.
+- Migrations are not set up yet. Alembic would be the next reasonable step.
